@@ -14,7 +14,7 @@ clock = pygame.time.Clock()
 
 def _parse_args():
 
-    parser = argparse.ArgumentParser(description='Script for generating json files from forecast csv files',
+    parser = argparse.ArgumentParser(description='Pathfinding visualizer',
                                      formatter_class=argparse.RawTextHelpFormatter)
     
     parser.add_argument(
