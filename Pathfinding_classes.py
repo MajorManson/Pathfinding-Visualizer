@@ -5,7 +5,233 @@ from Settings import *
 from typing import Any, List, Optional, Tuple, Union
 import heapq
 import numpy as np
+from collections import deque
+from typing import Tuple, Callable
 import pygame
+
+class Visualizer(BaseModel):
+
+    en_menu: Optional[int] = 0
+
+    alg: Optional[str] = None
+
+    def __init__(__pydantic_self__, **data: Any) -> None:
+        pygame.display.set_caption('Pathfinfing Visualizer')
+        super().__init__(**data)
+
+    @staticmethod
+    def make_grid(cls: Union[AStar, Dijkstra]) -> np.ndarray:
+        grid = []
+        for i in range(GRIDWIDTH):
+            grid.append([])
+            for j in range(GRIDHEIGHT):
+                grid[i].append(cls(row=j, col=i, parent=None))
+
+        return np.array(grid)
+
+    @staticmethod
+    def draw(win: pygame.Surface, grid: Union[list, np.ndarray]) -> None:
+
+        win.fill(MEDGRAY)
+        [spot.draw(win) for row in grid for spot in row]
+
+        for x in range(0, WIDTH, TILESIZE):
+            pygame.draw.line(win, WHITE, (x, 0), (x, HEIGHT))
+            pygame.draw.line(win, WHITE, (0, x), (WIDTH, x))
+
+        pygame.display.update()
+
+    @staticmethod
+    def H(p1: Tuple[float, float], p2: Tuple[float, float]) -> float:
+        x1, y1 = p1
+        x2, y2 = p2
+        ret = ((x1 - x2) ** 2 + (y1 - y2) ** 2) ** 0.5
+        return ret
+
+    @staticmethod
+    def vec2int(node: AStar) -> Tuple[int, int]:
+        return (int(node.row), int(node.col))
+
+    def return_path(self, currentNode: Union[AStar, Dijkstra],
+                    start: Union[AStar, Dijkstra],
+                    draw: Callable) -> None:
+
+        while currentNode.parent != start:
+            currentNode = currentNode.parent
+            currentNode.set_path()
+            draw()
+    
+    def menu(self, win: pygame.Surface) -> str:
+
+        # white color 
+        color = (255, 255, 255) 
+        
+        # light shade of the button 
+        color_light = (170, 170, 170) 
+        
+        # dark shade of the button 
+        color_dark = (100, 100, 100) 
+        
+        # stores the width of the 
+        # screen into a variable 
+        width = win.get_width() 
+        
+        # stores the height of the 
+        # screen into a variable 
+        height = win.get_height() 
+        
+        # defining a font 
+        smallfont = pygame.font.SysFont('Corbel', 35) 
+        
+        # rendering a text written in 
+        # this font 
+        texts = [(smallfont.render('Quit' , True , color),
+                (width / 2 - 30, height / 2 + 83)),
+                (smallfont.render('A*' , True , color),
+                (width / 2 - 15, height / 2 + 5)),
+                (smallfont.render('Dikjstra' , True , color),
+                (width / 2 - 50, height / 2 - 78))]
+
+        buttons = [((width / 2 - 150, width / 2 + 150),
+                    (height / 2 + 80, height / 2 + 120), 'Quit'),
+                ((width / 2 - 150, width / 2 + 150),
+                    (height / 2, height / 2 + 40), 'A*'),
+                ((width / 2 - 150, width / 2 + 150),
+                    (height / 2 - 80, height / 2 - 40), 'Dijkstra')]
+        
+        while True: 
+            
+            mouse = pygame.mouse.get_pos()
+            for event in pygame.event.get(): 
+                
+                if event.type == pygame.QUIT or \
+                    (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE): 
+                    self.alg = 'Quit'
+                    return
+                    
+                #checks if a mouse is clicked 
+                if event.type == pygame.MOUSEBUTTONDOWN: 
+                    
+                    #if the mouse is clicked on the 
+                    # button the game is terminated
+
+                    for button in buttons:
+                        if button[0][0] <= mouse[0] <= button[0][1] and \
+                            button[1][0] <= mouse[1] <= button[1][1]:
+                            self.alg = button[2]
+                            return
+                        
+            # fills the screen with a color 
+            win.fill((60,25,60)) 
+            
+            # stores the (x,y) coordinates into 
+            # the variable as a tuple 
+            
+            for button, text in zip(buttons, texts):
+                if button[0][0] <= mouse[0] <= button[0][1] and \
+                    button[1][0] <= mouse[1] <= button[1][1]:
+                    c = color_dark
+                else: c = color_light
+                
+                pygame.draw.rect(win, c,
+                                 [button[0][0], button[1][0], 300, 40],
+                                 0, 30)
+            
+                # superimposing the text onto our button 
+                win.blit(*text) 
+            
+            # updates the frames of the game 
+            pygame.display.update()
+
+    def DijkstraAlg(self, draw: Callable, start: Dijkstra,
+                    end: Dijkstra) -> None:
+
+        openList = deque([start])
+        visited = {self.vec2int(start)}
+
+        while len(openList):
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                
+                if event.type == pygame.KEYDOWN and \
+                    event.key == pygame.K_ESCAPE:
+                    self.en_menu = 1
+                    return
+
+            current = openList.popleft()
+            if current == end:
+                end.set_end()
+                self.return_path(current, start, draw)
+                break
+
+            for neighbour in current.neighbours:
+                pos = self.vec2int(neighbour)
+                if pos not in visited:
+                    neighbour.parent = current
+                    visited.add(pos)
+                    openList.append(neighbour)
+
+                    if not neighbour.is_end(): neighbour.set_open()
+
+            draw()
+            if current != start: current.set_close()
+
+        return
+
+    def AStarAlg(self, draw: Callable, grid: Union[list, np.ndarray],
+                 start: AStar, end: AStar) -> None:
+        
+        openList = PriorityQueue()
+        cost = {}
+
+        for row in grid:
+            for spot in row:
+                spot.G = float('inf')
+                spot.F = float('inf')
+        
+        start.F = self.H(start.get_pos(), end.get_pos())
+        start.G = 0
+        openList.put(start, start.G)
+        cost[self.vec2int(start)] = 0
+
+        while not openList.empty():
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                
+                if event.type == pygame.KEYDOWN and \
+                    event.key == pygame.K_ESCAPE:
+                    self.en_menu = 1
+                    return
+
+            current = openList.get()
+
+            if current == end:
+                end.set_end()
+                self.return_path(current, start, draw)
+                break
+
+            for neighbour in current.neighbours:
+                G = current.G + 1
+
+                if G < neighbour.G:
+                    neighbour.parent = current
+                    neighbour.G = G
+                    neighbour.F = G + self.H(neighbour.get_pos(), end.get_pos())
+
+                    pos = self.vec2int(neighbour)
+                    if pos not in cost:
+                        openList.put(neighbour, neighbour.F)
+                        cost[pos] = neighbour.F
+
+                        if not neighbour.is_end(): neighbour.set_open()
+
+            draw()
+
+            if current != start: current.set_close()     
+
+        return 
 
 
 class Pathfinding(BaseModel):
