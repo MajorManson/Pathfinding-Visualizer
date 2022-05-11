@@ -10,14 +10,16 @@ def pathfind_sim() -> None:
     WIN = pygame.display.set_mode((WIDTH, HEIGHT))
     clock = pygame.time.Clock()
 
+    MODES = {'A*': AStar,
+             'Dijkstra': Dijkstra}
+
     running = True
     while running:
         if not visualizer.alg or visualizer.en_menu:
             visualizer.menu(WIN)
 
             if visualizer.alg == 'Quit': break
-            grid = visualizer.make_grid(AStar if visualizer.alg == 'A*' \
-                                              else Dijkstra)
+            grid = visualizer.make_grid(MODES[visualizer.alg])
 
             visualizer.en_menu = 0
             start, end = None, None
@@ -71,8 +73,7 @@ def pathfind_sim() -> None:
 
                 if event.key == pygame.K_r:
                     start = end = None
-                    grid = visualizer.make_grid(AStar if visualizer.alg == 'A*' \
-                                                      else Dijkstra)
+                    grid = visualizer.make_grid(MODES[visualizer.alg])
 
                 if event.key == pygame.K_ESCAPE: visualizer.en_menu = 1
         
