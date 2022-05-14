@@ -2,14 +2,8 @@
 
 A pathfinding visualizer for A* and Dijkstra algorithms.
 
-To use the script, type `python Pathfinding.py` followed by `A*` or `Dijkstra` in the command line.
+Utilizes pygame to visualize the behaviour of each pathfinding algoirthms.
 
-<pre>usage: Pathfinding.py [-h] {A*,Dijkstra}
+To use the visualizer, use the mouse to select which option you want to choose.  
 
-Pathfinding visualizer
-
-positional arguments:
-  {A*,Dijkstra}  Choose which pathfinding algorithm to use
-
-optional arguments:
-  -h, --help     show this help message and exit</pre>
+Use M1 to select the start, end, and wall nodes. To reset or redo the board, press the R button. To go back to the main meny, press the ESC button. To start the visualization, press spacebar.  
